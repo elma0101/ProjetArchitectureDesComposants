@@ -1,0 +1,102 @@
+groups:
+  - name: bookstore_alerts
+    rules:
+      # High Error Rate Alert
+      - alert: HighErrorRate
+        expr: rate(bookstore_api_errors_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value }} errors per second for the last 5 minutes"
+
+      # High Response Time Alert
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_server_requests_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High response time detected"
+          description: "95th percentile response time is {{ $value }} seconds"
+
+      # Database Connection Issues
+      - alert: DatabaseConnectionDown
+        expr: up{job="bookstore-app"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Database connection is down"
+          description: "The bookstore application cannot connect to the database"
+
+      # High Memory Usage
+      - alert: HighMemoryUsage
+        expr: (jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"}) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High JVM memory usage"
+          description: "JVM heap memory usage is {{ $value | humanizePercentage }}"
+
+      # High CPU Usage
+      - alert: HighCPUUsage
+        expr: rate(process_cpu_seconds_total[5m]) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value | humanizePercentage }}"
+
+      # Too Many Active Loans
+      - alert: TooManyActiveLoans
+        expr: bookstore_loans_current > 1000
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High number of active loans"
+          description: "There are {{ $value }} active loans, which is above the threshold"
+
+      # Circuit Breaker Open
+      - alert: CircuitBreakerOpen
+        expr: resilience4j_circuitbreaker_state{state="open"} == 1
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Circuit breaker is open"
+          description: "Circuit breaker {{ $labels.name }} is in open state"
+
+      # Slow Database Operations
+      - alert: SlowDatabaseOperations
+        expr: histogram_quantile(0.95, rate(bookstore_database_operation_duration_seconds_bucket[5m])) > 1
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow database operations detected"
+          description: "95th percentile database operation time is {{ $value }} seconds"
+
+      # Redis Connection Issues
+      - alert: RedisConnectionDown
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis connection is down"
+          description: "Cannot connect to Redis cache"
+
+      # Low Disk Space
+      - alert: LowDiskSpace
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) < 0.1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Low disk space"
+          description: "Disk space is {{ $value | humanizePercentage }} full"

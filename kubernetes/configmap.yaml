@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bookstore-config
+  namespace: bookstore
+data:
+  application.yml: |
+    spring:
+      profiles:
+        active: prod
+      datasource:
+        url: jdbc:postgresql://postgres-service:5432/bookstore_prod
+        username: bookstore_user
+        driver-class-name: org.postgresql.Driver
+      jpa:
+        hibernate:
+          ddl-auto: validate
+        show-sql: false
+      data:
+        redis:
+          host: redis-service
+          port: 6379
+    server:
+      port: 8080
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: health,info,metrics,prometheus
+      endpoint:
+        health:
+          probes:
+            enabled: true
+    bookstore:
+      cors:
+        allowed-origins: https://bookstore.yourdomain.com
+      rate-limiting:
+        enabled: true
+        requests-per-minute: 100
+      monitoring:
+        enabled: true

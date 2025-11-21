@@ -1,0 +1,81 @@
+spring:
+  datasource:
+    # TestContainers will override these values
+    url: jdbc:postgresql://localhost:5432/bookstore_test
+    username: test
+    password: test
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  
+  sql:
+    init:
+      mode: never  # Disable data.sql for integration tests
+  
+  data:
+    rest:
+      base-path: /api
+      default-page-size: 20
+      max-page-size: 100
+  
+  redis:
+    host: localhost
+    port: 6379
+    timeout: 2000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+  
+  cache:
+    type: redis
+    redis:
+      time-to-live: 600000
+  
+  security:
+    jwt:
+      secret: test-secret-key-for-integration-tests-only
+      expiration: 86400000
+  
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            connectTimeout: 5000
+            readTimeout: 5000
+
+logging:
+  level:
+    com.bookstore: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+# Test-specific configurations
+test:
+  data:
+    cleanup: true
+  external:
+    services:
+      mock: true
+  performance:
+    enabled: false

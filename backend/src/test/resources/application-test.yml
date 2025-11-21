@@ -1,0 +1,92 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: true
+    defer-datasource-initialization: true
+  
+  sql:
+    init:
+      mode: never # Don't run data.sql in tests
+  
+  h2:
+    console:
+      enabled: true
+  
+  # Cache Configuration for Tests
+  cache:
+    type: simple # Use simple cache for tests instead of Redis
+    cache-names: books,authors,bookSearch,authorSearch,recommendations,popularBooks,bookStats,authorStats,loanStats
+
+logging:
+  level:
+    com.bookstore: DEBUG
+    org.springframework.orm.jpa: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+# Resilience4j Configuration for Tests
+resilience4j:
+  circuitbreaker:
+    instances:
+      bookService:
+        register-health-indicator: true
+        sliding-window-size: 5
+        minimum-number-of-calls: 3
+        permitted-number-of-calls-in-half-open-state: 2
+        automatic-transition-from-open-to-half-open-enabled: true
+        wait-duration-in-open-state: 1s
+        failure-rate-threshold: 50
+        event-consumer-buffer-size: 10
+      authorService:
+        register-health-indicator: true
+        sliding-window-size: 5
+        minimum-number-of-calls: 3
+        permitted-number-of-calls-in-half-open-state: 2
+        automatic-transition-from-open-to-half-open-enabled: true
+        wait-duration-in-open-state: 1s
+        failure-rate-threshold: 50
+        event-consumer-buffer-size: 10
+  
+  retry:
+    instances:
+      bookService:
+        max-attempts: 2
+        wait-duration: 100ms
+        enable-exponential-backoff: false
+      authorService:
+        max-attempts: 2
+        wait-duration: 100ms
+        enable-exponential-backoff: false
+  
+  timelimiter:
+    instances:
+      bookService:
+        timeout-duration: 1s
+      authorService:
+        timeout-duration: 1s
+
+# JWT Configuration for Tests
+jwt:
+  secret: testSecretKey123456789012345678901234567890
+  expiration: 3600000 # 1 hour for tests
+
+# Security Configuration for Tests
+security:
+  rate-limiting:
+    enabled: false # Disable rate limiting in tests
+    requests-per-minute: 1000
+  audit:
+    enabled: true
+    log-all-requests: false
+    log-sensitive-operations: true

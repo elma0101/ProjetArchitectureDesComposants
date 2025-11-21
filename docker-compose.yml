@@ -1,0 +1,116 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: bookstore-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-bookstore_prod}
+      POSTGRES_USER: ${POSTGRES_USER:-bookstore_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bookstore_pass}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/src/main/resources/db/migration:/docker-entrypoint-initdb.d
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    networks:
+      - bookstore-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bookstore_user} -d ${POSTGRES_DB:-bookstore_prod}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: bookstore-redis
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_pass}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    networks:
+      - bookstore-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis_pass}", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+
+  # Backend Application
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: bookstore-backend
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-bookstore_prod}
+      DATABASE_USERNAME: ${POSTGRES_USER:-bookstore_user}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-bookstore_pass}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis_pass}
+      JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-in-production}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
+    volumes:
+      - app_logs:/var/log/bookstore
+      - app_uploads:/var/bookstore/uploads
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    networks:
+      - bookstore-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
+  # Frontend Application
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: bookstore-frontend
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    networks:
+      - bookstore-network
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+
+networks:
+  bookstore-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  app_logs:
+    driver: local
+  app_uploads:
+    driver: local
