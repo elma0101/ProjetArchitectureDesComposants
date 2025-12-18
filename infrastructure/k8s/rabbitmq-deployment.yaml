@@ -1,0 +1,518 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rabbitmq-config
+  namespace: bookstore-infrastructure
+data:
+  rabbitmq.conf: |
+    # RabbitMQ Configuration for Bookstore Microservices
+    listeners.tcp.default = 5672
+    management.tcp.port = 15672
+    default_vhost = /bookstore
+    default_user = bookstore
+    default_pass = bookstore123
+    default_permissions.configure = .*
+    default_permissions.read = .*
+    default_permissions.write = .*
+    vm_memory_high_watermark.relative = 0.6
+    disk_free_limit.absolute = 2GB
+    log.console = true
+    log.console.level = error
+    log.file.level = error
+    heartbeat = 60
+    frame_max = 131072
+    channel_max = 2047
+    queue_master_locator = min-masters
+    cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
+    cluster_formation.k8s.host = kubernetes.default.svc.cluster.local
+    cluster_formation.k8s.address_type = hostname
+    cluster_partition_handling = autoheal
+    management.load_definitions = /etc/rabbitmq/definitions.json
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rabbitmq-secret
+  namespace: bookstore-infrastructure
+type: Opaque
+stringData:
+  rabbitmq-user: bookstore
+  rabbitmq-password: bookstore123
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq
+  namespace: bookstore-infrastructure
+  labels:
+    app: rabbitmq
+spec:
+  type: ClusterIP
+  ports:
+    - name: amqp
+      port: 5672
+      targetPort: 5672
+    - name: management
+      port: 15672
+      targetPort: 15672
+  selector:
+    app: rabbitmq
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq-headless
+  namespace: bookstore-infrastructure
+  labels:
+    app: rabbitmq
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - name: amqp
+      port: 5672
+      targetPort: 5672
+    - name: management
+      port: 15672
+      targetPort: 15672
+    - name: epmd
+      port: 4369
+      targetPort: 4369
+  selector:
+    app: rabbitmq
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: rabbitmq
+  namespace: bookstore-infrastructure
+spec:
+  serviceName: rabbitmq-headless
+  replicas: 3
+  selector:
+    matchLabels:
+      app: rabbitmq
+  template:
+    metadata:
+      labels:
+        app: rabbitmq
+    spec:
+      serviceAccountName: rabbitmq
+      initContainers:
+        - name: config
+          image: busybox:1.35
+          command: ['sh', '-c', 'cp /tmp/config/rabbitmq.conf /etc/rabbitmq/rabbitmq.conf && echo "Configuration copied"']
+          volumeMounts:
+            - name: config
+              mountPath: /tmp/config
+            - name: config-file
+              mountPath: /etc/rabbitmq
+      containers:
+        - name: rabbitmq
+          image: rabbitmq:3.12-management-alpine
+          ports:
+            - name: amqp
+              containerPort: 5672
+            - name: management
+              containerPort: 15672
+            - name: epmd
+              containerPort: 4369
+          env:
+            - name: RABBITMQ_DEFAULT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: rabbitmq-user
+            - name: RABBITMQ_DEFAULT_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: rabbitmq-password
+            - name: RABBITMQ_DEFAULT_VHOST
+              value: "/bookstore"
+            - name: RABBITMQ_ERLANG_COOKIE
+              value: "bookstore-secret-cookie"
+            - name: RABBITMQ_NODENAME
+              value: "rabbit@$(POD_NAME).rabbitmq-headless.bookstore-infrastructure.svc.cluster.local"
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: K8S_SERVICE_NAME
+              value: "rabbitmq-headless"
+            - name: K8S_HOSTNAME_SUFFIX
+              value: ".rabbitmq-headless.bookstore-infrastructure.svc.cluster.local"
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/rabbitmq
+            - name: config-file
+              mountPath: /etc/rabbitmq/rabbitmq.conf
+              subPath: rabbitmq.conf
+            - name: definitions
+              mountPath: /etc/rabbitmq/definitions.json
+              subPath: definitions.json
+          livenessProbe:
+            exec:
+              command:
+                - rabbitmq-diagnostics
+                - -q
+                - ping
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+                - rabbitmq-diagnostics
+                - -q
+                - check_running
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 10
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+      volumes:
+        - name: config
+          configMap:
+            name: rabbitmq-config
+        - name: config-file
+          emptyDir: {}
+        - name: definitions
+          configMap:
+            name: rabbitmq-definitions
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 10Gi
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rabbitmq
+  namespace: bookstore-infrastructure
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: rabbitmq
+  namespace: bookstore-infrastructure
+rules:
+  - apiGroups: [""]
+    resources: ["endpoints"]
+    verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: rabbitmq
+  namespace: bookstore-infrastructure
+subjects:
+  - kind: ServiceAccount
+    name: rabbitmq
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: rabbitmq
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rabbitmq-definitions
+  namespace: bookstore-infrastructure
+data:
+  definitions.json: |
+    {
+      "rabbit_version": "3.12.0",
+      "rabbitmq_version": "3.12.0",
+      "users": [
+        {
+          "name": "bookstore",
+          "password_hash": "bookstore123",
+          "hashing_algorithm": "rabbit_password_hashing_sha256",
+          "tags": "administrator"
+        }
+      ],
+      "vhosts": [
+        {
+          "name": "/bookstore"
+        }
+      ],
+      "permissions": [
+        {
+          "user": "bookstore",
+          "vhost": "/bookstore",
+          "configure": ".*",
+          "write": ".*",
+          "read": ".*"
+        }
+      ],
+      "parameters": [],
+      "global_parameters": [
+        {
+          "name": "cluster_name",
+          "value": "bookstore-cluster"
+        }
+      ],
+      "policies": [
+        {
+          "vhost": "/bookstore",
+          "name": "ha-all",
+          "pattern": ".*",
+          "apply-to": "all",
+          "definition": {
+            "ha-mode": "all",
+            "ha-sync-mode": "automatic"
+          },
+          "priority": 0
+        },
+        {
+          "vhost": "/bookstore",
+          "name": "dlx-policy",
+          "pattern": "^(?!.*\\.dlq$).*",
+          "apply-to": "queues",
+          "definition": {
+            "dead-letter-exchange": "bookstore.dlx",
+            "dead-letter-routing-key": "dead-letter"
+          },
+          "priority": 1
+        }
+      ],
+      "queues": [
+        {
+          "name": "book.created",
+          "vhost": "/bookstore",
+          "durable": true,
+          "auto_delete": false,
+          "arguments": {
+            "x-message-ttl": 86400000,
+            "x-max-length": 10000
+          }
+        },
+        {
+          "name": "book.updated",
+          "vhost": "/bookstore",
+          "durable": true,
+          "auto_delete": false,
+          "arguments": {
+            "x-message-ttl": 86400000,
+            "x-max-length": 10000
+          }
+        },
+        {
+          "name": "book.deleted",
+          "vhost": "/bookstore",
+          "durable": true,
+          "auto_delete": false,
+          "arguments": {
+            "x-message-ttl": 86400000,
+            "x-max-length": 10000
+          }
+        },
+        {
+          "name": "book.availability.changed",
+          "vhost": "/bookstore",
+          "durable": true,
+          "auto_delete": false,
+          "arguments": {
+            "x-message-ttl": 86400000,
+            "x-max-length": 10000
+          }
+        },
+        {
+          "name": "loan.created",
+          "vhost": "/bookstore",
+          "durable": true,
+          "auto_delete": false,
+          "arguments": {
+            "x-message-ttl": 86400000,
+            "x-max-length": 10000
+          }
+        },
+        {
+          "name": "loan.returned",
+          "vhost": "/bookstore",
+          "durable": true,
+          "auto_delete": false,
+          "arguments": {
+            "x-message-ttl": 86400000,
+            "x-max-length": 10000
+          }
+        },
+        {
+          "name": "loan.overdue",
+          "vhost": "/bookstore",
+          "durable": true,
+          "auto_delete": false,
+          "arguments": {
+            "x-message-ttl": 86400000,
+            "x-max-length": 10000
+          }
+        },
+        {
+          "name": "notification.email",
+          "vhost": "/bookstore",
+          "durable": true,
+          "auto_delete": false,
+          "arguments": {
+            "x-message-ttl": 86400000,
+            "x-max-length": 10000
+          }
+        },
+        {
+          "name": "audit.log",
+          "vhost": "/bookstore",
+          "durable": true,
+          "auto_delete": false,
+          "arguments": {
+            "x-message-ttl": 604800000,
+            "x-max-length": 50000
+          }
+        },
+        {
+          "name": "recommendation.update",
+          "vhost": "/bookstore",
+          "durable": true,
+          "auto_delete": false,
+          "arguments": {
+            "x-message-ttl": 86400000,
+            "x-max-length": 10000
+          }
+        },
+        {
+          "name": "dead-letter.queue",
+          "vhost": "/bookstore",
+          "durable": true,
+          "auto_delete": false,
+          "arguments": {
+            "x-message-ttl": 604800000
+          }
+        }
+      ],
+      "exchanges": [
+        {
+          "name": "bookstore.events",
+          "vhost": "/bookstore",
+          "type": "topic",
+          "durable": true,
+          "auto_delete": false,
+          "internal": false,
+          "arguments": {}
+        },
+        {
+          "name": "bookstore.dlx",
+          "vhost": "/bookstore",
+          "type": "topic",
+          "durable": true,
+          "auto_delete": false,
+          "internal": false,
+          "arguments": {}
+        }
+      ],
+      "bindings": [
+        {
+          "source": "bookstore.events",
+          "vhost": "/bookstore",
+          "destination": "book.created",
+          "destination_type": "queue",
+          "routing_key": "book.created",
+          "arguments": {}
+        },
+        {
+          "source": "bookstore.events",
+          "vhost": "/bookstore",
+          "destination": "book.updated",
+          "destination_type": "queue",
+          "routing_key": "book.updated",
+          "arguments": {}
+        },
+        {
+          "source": "bookstore.events",
+          "vhost": "/bookstore",
+          "destination": "book.deleted",
+          "destination_type": "queue",
+          "routing_key": "book.deleted",
+          "arguments": {}
+        },
+        {
+          "source": "bookstore.events",
+          "vhost": "/bookstore",
+          "destination": "book.availability.changed",
+          "destination_type": "queue",
+          "routing_key": "book.availability.*",
+          "arguments": {}
+        },
+        {
+          "source": "bookstore.events",
+          "vhost": "/bookstore",
+          "destination": "loan.created",
+          "destination_type": "queue",
+          "routing_key": "loan.created",
+          "arguments": {}
+        },
+        {
+          "source": "bookstore.events",
+          "vhost": "/bookstore",
+          "destination": "loan.returned",
+          "destination_type": "queue",
+          "routing_key": "loan.returned",
+          "arguments": {}
+        },
+        {
+          "source": "bookstore.events",
+          "vhost": "/bookstore",
+          "destination": "loan.overdue",
+          "destination_type": "queue",
+          "routing_key": "loan.overdue",
+          "arguments": {}
+        },
+        {
+          "source": "bookstore.events",
+          "vhost": "/bookstore",
+          "destination": "notification.email",
+          "destination_type": "queue",
+          "routing_key": "notification.*",
+          "arguments": {}
+        },
+        {
+          "source": "bookstore.events",
+          "vhost": "/bookstore",
+          "destination": "audit.log",
+          "destination_type": "queue",
+          "routing_key": "audit.*",
+          "arguments": {}
+        },
+        {
+          "source": "bookstore.events",
+          "vhost": "/bookstore",
+          "destination": "recommendation.update",
+          "destination_type": "queue",
+          "routing_key": "recommendation.*",
+          "arguments": {}
+        },
+        {
+          "source": "bookstore.dlx",
+          "vhost": "/bookstore",
+          "destination": "dead-letter.queue",
+          "destination_type": "queue",
+          "routing_key": "dead-letter",
+          "arguments": {}
+        }
+      ]
+    }

@@ -1,0 +1,61 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: user-management-service
+          uri: lb://user-management-service
+          predicates:
+            - Path=/api/users/**, /api/auth/**
+          filters:
+            - StripPrefix=1
+        - id: book-catalog-service
+          uri: lb://book-catalog-service
+          predicates:
+            - Path=/api/books/**, /api/authors/**, /api/categories/**
+          filters:
+            - StripPrefix=1
+        - id: loan-management-service
+          uri: lb://loan-management-service
+          predicates:
+            - Path=/api/loans/**
+          filters:
+            - StripPrefix=1
+        - id: recommendation-service
+          uri: lb://recommendation-service
+          predicates:
+            - Path=/api/recommendations/**
+          filters:
+            - StripPrefix=1
+        - id: audit-service
+          uri: lb://audit-service
+          predicates:
+            - Path=/api/audit/**
+          filters:
+            - StripPrefix=1
+        - id: notification-service
+          uri: lb://notification-service
+          predicates:
+            - Path=/api/notifications/**
+          filters:
+            - StripPrefix=1
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods: "*"
+            allowedHeaders: "*"
+
+jwt:
+  secret: ${JWT_SECRET:mySecretKey}
+  expiration: 86400000
+
+logging:
+  file:
+    name: logs/api-gateway.log

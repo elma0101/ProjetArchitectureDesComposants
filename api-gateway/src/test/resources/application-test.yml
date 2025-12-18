@@ -1,0 +1,36 @@
+spring:
+  application:
+    name: api-gateway-test
+  
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: false
+    config:
+      enabled: false
+  
+  redis:
+    host: localhost
+    port: 6379
+    # Use embedded Redis for tests
+    embedded:
+      enabled: true
+
+eureka:
+  client:
+    enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+jwt:
+  secret: mySecretKeyForBookstoreApplicationThatShouldBeAtLeast256BitsLong
+  expiration: 86400
+
+logging:
+  level:
+    com.bookstore.gateway: DEBUG

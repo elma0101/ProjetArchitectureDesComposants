@@ -1,25 +1,23 @@
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
+  external_labels:
+    cluster: 'bookstore-microservices'
+    environment: 'production'
 
-rule_files:
-  - "alert_rules.yml"
-
+# Alertmanager configuration
 alerting:
   alertmanagers:
     - static_configs:
         - targets:
-          - alertmanager:9093
+            - alertmanager:9093
 
+# Load rules once and periodically evaluate them
+rule_files:
+  - "alert_rules.yml"
+
+# Scrape configurations
 scrape_configs:
-  # Bookstore Application
-  - job_name: 'bookstore-app'
-    metrics_path: '/actuator/prometheus'
-    static_configs:
-      - targets: ['host.docker.internal:8080']
-    scrape_interval: 10s
-    scrape_timeout: 5s
-
   # Prometheus itself
   - job_name: 'prometheus'
     static_configs:
@@ -30,14 +28,123 @@ scrape_configs:
     static_configs:
       - targets: ['node-exporter:9100']
 
-  # PostgreSQL Exporter (if you add it)
-  - job_name: 'postgres-exporter'
+  # Eureka Server
+  - job_name: 'eureka-server'
+    metrics_path: '/actuator/prometheus'
     static_configs:
-      - targets: ['postgres-exporter:9187']
-    scrape_interval: 30s
+      - targets: ['eureka-server:8761']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'eureka-server'
 
-  # Redis Exporter (if you add it)
-  - job_name: 'redis-exporter'
+  # Config Server
+  - job_name: 'config-server'
+    metrics_path: '/actuator/prometheus'
     static_configs:
-      - targets: ['redis-exporter:9121']
+      - targets: ['config-server:8888']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'config-server'
+
+  # RabbitMQ
+  - job_name: 'rabbitmq'
+    static_configs:
+      - targets: ['rabbitmq:15672']
+    metrics_path: '/api/metrics'
+    basic_auth:
+      username: 'bookstore'
+      password: 'bookstore123'
     scrape_interval: 30s
+    scrape_timeout: 10s
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'rabbitmq'
+
+  # API Gateway
+  - job_name: 'api-gateway'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['api-gateway:8080']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'api-gateway'
+
+  # User Management Service
+  - job_name: 'user-management-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['user-management-service:8081']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'user-management-service'
+
+  # Book Catalog Service
+  - job_name: 'book-catalog-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['book-catalog-service:8082']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'book-catalog-service'
+
+  # Loan Management Service
+  - job_name: 'loan-management-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['loan-management-service:8083']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'loan-management-service'
+
+  # Recommendation Service
+  - job_name: 'recommendation-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['recommendation-service:8084']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'recommendation-service'
+
+  # Notification Service
+  - job_name: 'notification-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['notification-service:8085']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'notification-service'
+
+  # Audit Service
+  - job_name: 'audit-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['audit-service:8086']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'audit-service'
+
+  # Service Discovery - scrape all services registered in Eureka
+  - job_name: 'eureka-discovery'
+    eureka_sd_configs:
+      - server: 'http://eureka-server:8761/eureka'
+    relabel_configs:
+      - source_labels: [__meta_eureka_app_name]
+        target_label: job
+      - source_labels: [__meta_eureka_app_instance_metadata_management_port]
+        target_label: __address__
+        regex: '(.+)'
+        replacement: '${1}'
+      - source_labels: [__address__]
+        regex: '([^:]+)(?::\d+)?'
+        target_label: instance
+        replacement: '${1}'

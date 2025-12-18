@@ -1,102 +1,228 @@
 groups:
-  - name: bookstore_alerts
+  - name: service_health
+    interval: 30s
     rules:
-      # High Error Rate Alert
+      - alert: ServiceDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "{{ $labels.job }} on {{ $labels.instance }} has been down for more than 2 minutes."
+
       - alert: HighErrorRate
-        expr: rate(bookstore_api_errors_total[5m]) > 0.1
-        for: 2m
+        expr: rate(http_server_requests_seconds_count{status=~"5.."}[5m]) > 0.05
+        for: 5m
         labels:
-          severity: critical
+          severity: warning
         annotations:
-          summary: "High error rate detected"
-          description: "Error rate is {{ $value }} errors per second for the last 5 minutes"
+          summary: "High error rate on {{ $labels.job }}"
+          description: "{{ $labels.job }} is experiencing {{ $value }} errors per second."
 
-      # High Response Time Alert
       - alert: HighResponseTime
-        expr: histogram_quantile(0.95, rate(http_server_requests_seconds_bucket[5m])) > 2
+        expr: histogram_quantile(0.95, rate(http_server_requests_seconds_bucket[5m])) > 1
         for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "High response time detected"
-          description: "95th percentile response time is {{ $value }} seconds"
+          summary: "High response time on {{ $labels.job }}"
+          description: "95th percentile response time is {{ $value }}s on {{ $labels.job }}."
 
-      # Database Connection Issues
-      - alert: DatabaseConnectionDown
-        expr: up{job="bookstore-app"} == 0
-        for: 1m
+  - name: resource_usage
+    interval: 30s
+    rules:
+      - alert: HighCPUUsage
+        expr: process_cpu_usage > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ $labels.job }}"
+          description: "CPU usage is {{ $value | humanizePercentage }} on {{ $labels.job }}."
+
+      - alert: HighMemoryUsage
+        expr: jvm_memory_used_bytes / jvm_memory_max_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on {{ $labels.job }}"
+          description: "Memory usage is {{ $value | humanizePercentage }} on {{ $labels.job }}."
+
+      - alert: HighDiskUsage
+        expr: (node_filesystem_size_bytes - node_filesystem_free_bytes) / node_filesystem_size_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High disk usage on {{ $labels.instance }}"
+          description: "Disk usage is {{ $value | humanizePercentage }} on {{ $labels.instance }}."
+
+  - name: database
+    interval: 30s
+    rules:
+      - alert: DatabaseConnectionPoolExhausted
+        expr: hikaricp_connections_active / hikaricp_connections_max > 0.9
+        for: 2m
         labels:
           severity: critical
         annotations:
-          summary: "Database connection is down"
-          description: "The bookstore application cannot connect to the database"
+          summary: "Database connection pool nearly exhausted on {{ $labels.job }}"
+          description: "{{ $labels.job }} is using {{ $value | humanizePercentage }} of database connections."
 
-      # High Memory Usage
-      - alert: HighMemoryUsage
-        expr: (jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"}) > 0.8
+      - alert: SlowDatabaseQueries
+        expr: rate(hikaricp_connections_acquire_seconds_sum[5m]) / rate(hikaricp_connections_acquire_seconds_count[5m]) > 1
         for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "High JVM memory usage"
-          description: "JVM heap memory usage is {{ $value | humanizePercentage }}"
+          summary: "Slow database queries on {{ $labels.job }}"
+          description: "Average query time is {{ $value }}s on {{ $labels.job }}."
 
-      # High CPU Usage
-      - alert: HighCPUUsage
-        expr: rate(process_cpu_seconds_total[5m]) > 0.8
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "High CPU usage"
-          description: "CPU usage is {{ $value | humanizePercentage }}"
-
-      # Too Many Active Loans
-      - alert: TooManyActiveLoans
-        expr: bookstore_loans_current > 1000
-        for: 2m
-        labels:
-          severity: warning
-        annotations:
-          summary: "High number of active loans"
-          description: "There are {{ $value }} active loans, which is above the threshold"
-
-      # Circuit Breaker Open
+  - name: circuit_breaker
+    interval: 30s
+    rules:
       - alert: CircuitBreakerOpen
         expr: resilience4j_circuitbreaker_state{state="open"} == 1
         for: 1m
         labels:
           severity: critical
         annotations:
-          summary: "Circuit breaker is open"
-          description: "Circuit breaker {{ $labels.name }} is in open state"
+          summary: "Circuit breaker open for {{ $labels.name }}"
+          description: "Circuit breaker {{ $labels.name }} on {{ $labels.job }} is open."
 
-      # Slow Database Operations
-      - alert: SlowDatabaseOperations
-        expr: histogram_quantile(0.95, rate(bookstore_database_operation_duration_seconds_bucket[5m])) > 1
-        for: 3m
+      - alert: HighCircuitBreakerFailureRate
+        expr: rate(resilience4j_circuitbreaker_calls_seconds_count{kind="failed"}[5m]) > 0.1
+        for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "Slow database operations detected"
-          description: "95th percentile database operation time is {{ $value }} seconds"
+          summary: "High circuit breaker failure rate for {{ $labels.name }}"
+          description: "Circuit breaker {{ $labels.name }} has {{ $value }} failures per second."
 
-      # Redis Connection Issues
-      - alert: RedisConnectionDown
-        expr: redis_up == 0
-        for: 1m
+  - name: api_gateway
+    interval: 30s
+    rules:
+      - alert: HighGatewayLatency
+        expr: histogram_quantile(0.95, rate(spring_cloud_gateway_requests_seconds_bucket[5m])) > 2
+        for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "Redis connection is down"
-          description: "Cannot connect to Redis cache"
+          summary: "High API Gateway latency"
+          description: "95th percentile latency is {{ $value }}s on API Gateway."
 
-      # Low Disk Space
-      - alert: LowDiskSpace
-        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) < 0.1
+      - alert: RateLimitExceeded
+        expr: rate(rate_limit_exceeded_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High rate of rate limit exceeded events"
+          description: "{{ $value }} rate limit exceeded events per second."
+
+  - name: messaging
+    interval: 30s
+    rules:
+      - alert: RabbitMQDown
+        expr: up{job="rabbitmq"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "RabbitMQ is down"
+          description: "RabbitMQ message broker has been down for more than 2 minutes."
+
+      - alert: RabbitMQHighMemoryUsage
+        expr: rabbitmq_node_mem_used / rabbitmq_node_mem_limit > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "RabbitMQ high memory usage"
+          description: "RabbitMQ is using {{ $value | humanizePercentage }} of available memory."
+
+      - alert: RabbitMQHighDiskUsage
+        expr: rabbitmq_node_disk_free < 2147483648
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "RabbitMQ low disk space"
+          description: "RabbitMQ has only {{ $value | humanize1024 }}B of free disk space."
+
+      - alert: RabbitMQNoConsumers
+        expr: rabbitmq_queue_consumers == 0 and rabbitmq_queue_messages > 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "RabbitMQ queue has no consumers"
+          description: "Queue {{ $labels.queue }} has {{ $value }} messages but no consumers."
+
+      - alert: MessageQueueBacklog
+        expr: rabbitmq_queue_messages > 1000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Message queue backlog on {{ $labels.queue }}"
+          description: "Queue {{ $labels.queue }} has {{ $value }} messages."
+
+      - alert: DeadLetterQueueGrowing
+        expr: rabbitmq_queue_messages{queue="dead-letter.queue"} > 100
         for: 5m
         labels:
           severity: critical
         annotations:
-          summary: "Low disk space"
-          description: "Disk space is {{ $value | humanizePercentage }} full"
+          summary: "Dead letter queue growing"
+          description: "Dead letter queue has {{ $value }} messages - investigate failed message processing."
+
+      - alert: RabbitMQHighConnectionCount
+        expr: rabbitmq_connections > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "RabbitMQ high connection count"
+          description: "RabbitMQ has {{ $value }} active connections."
+
+      - alert: RabbitMQMessagePublishRate
+        expr: rate(rabbitmq_channel_messages_published_total[5m]) < 0.1
+        for: 10m
+        labels:
+          severity: info
+        annotations:
+          summary: "Low message publish rate"
+          description: "Message publish rate is {{ $value }} messages/second - may indicate service issues."
+
+      - alert: RabbitMQMessageUnacknowledged
+        expr: rabbitmq_queue_messages_unacked > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High number of unacknowledged messages"
+          description: "Queue {{ $labels.queue }} has {{ $value }} unacknowledged messages."
+
+  - name: service_discovery
+    interval: 30s
+    rules:
+      - alert: ServiceInstanceDown
+        expr: eureka_server_registry_size < 5
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Low number of registered service instances"
+          description: "Only {{ $value }} services are registered in Eureka."
+
+      - alert: ServiceRegistrationFailing
+        expr: rate(eureka_server_registry_failed_registrations_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Service registration failures"
+          description: "{{ $value }} service registration failures per second."

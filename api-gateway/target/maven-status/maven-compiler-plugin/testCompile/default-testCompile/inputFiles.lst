@@ -1,0 +1,6 @@
+/home/ielma/Bureau/ProjetcsS9/Architecture des composants/api-gateway/src/test/java/com/bookstore/gateway/ApiGatewayApplicationTests.java
+/home/ielma/Bureau/ProjetcsS9/Architecture des composants/api-gateway/src/test/java/com/bookstore/gateway/filter/JwtAuthenticationFilterTest.java
+/home/ielma/Bureau/ProjetcsS9/Architecture des composants/api-gateway/src/test/java/com/bookstore/gateway/util/JwtUtilTest.java
+/home/ielma/Bureau/ProjetcsS9/Architecture des composants/api-gateway/src/test/java/com/bookstore/gateway/integration/GatewayIntegrationTest.java
+/home/ielma/Bureau/ProjetcsS9/Architecture des composants/api-gateway/src/test/java/com/bookstore/gateway/controller/HealthControllerTest.java
+/home/ielma/Bureau/ProjetcsS9/Architecture des composants/api-gateway/src/test/java/com/bookstore/gateway/config/TestConfig.java

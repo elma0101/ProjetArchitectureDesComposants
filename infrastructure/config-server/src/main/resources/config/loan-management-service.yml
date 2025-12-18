@@ -1,0 +1,32 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: loan-management-service
+  datasource:
+    url: jdbc:postgresql://postgres:5432/bookstore_loans
+    username: ${DB_USERNAME:bookstore_user}
+    password: ${DB_PASSWORD:bookstore_pass}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    locations: classpath:db/migration/loans
+  rabbitmq:
+    host: ${RABBITMQ_HOST:rabbitmq}
+    port: 5672
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+
+feign:
+  client:
+    config:
+      user-management-service:
+        url: http://user-management-service:8081
+      book-catalog-service:
+        url: http://book-catalog-service:8082
+
+logging:
+  file:
+    name: logs/loan-management-service.log

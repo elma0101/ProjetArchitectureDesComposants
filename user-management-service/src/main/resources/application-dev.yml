@@ -1,0 +1,10 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/user_management_db
+  jpa:
+    show-sql: true
+
+logging:
+  level:
+    com.bookstore.usermanagement: DEBUG
+    org.springframework.security: DEBUG

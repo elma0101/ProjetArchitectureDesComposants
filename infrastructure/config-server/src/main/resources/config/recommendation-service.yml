@@ -1,0 +1,26 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: recommendation-service
+  data:
+    mongodb:
+      uri: mongodb://${MONGO_USERNAME:bookstore_user}:${MONGO_PASSWORD:bookstore_pass}@${MONGO_HOST:mongodb}:27017/bookstore_recommendations
+  rabbitmq:
+    host: ${RABBITMQ_HOST:rabbitmq}
+    port: 5672
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+
+feign:
+  client:
+    config:
+      user-management-service:
+        url: http://user-management-service:8081
+      book-catalog-service:
+        url: http://book-catalog-service:8082
+
+logging:
+  file:
+    name: logs/recommendation-service.log
