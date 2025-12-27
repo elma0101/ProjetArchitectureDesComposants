@@ -1,0 +1,29 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/notification_db
+    username: postgres
+    password: postgres
+  
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: validate
+  
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+  
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME:test@example.com}
+    password: ${MAIL_PASSWORD:password}
+    test-connection: false
+
+logging:
+  level:
+    com.bookstore.notification: DEBUG
+    org.springframework.amqp: DEBUG
+    org.springframework.mail: DEBUG

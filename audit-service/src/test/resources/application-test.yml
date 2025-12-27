@@ -1,0 +1,20 @@
+spring:
+  elasticsearch:
+    uris: http://localhost:9200
+  
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+
+server:
+  port: 0
+
+eureka:
+  client:
+    enabled: false
+
+logging:
+  level:
+    com.bookstore.audit: DEBUG

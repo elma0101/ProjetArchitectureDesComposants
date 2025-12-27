@@ -1,0 +1,157 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: bookstore
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: loan-management-config
+  namespace: bookstore
+data:
+  application.yml: |
+    spring:
+      application:
+        name: loan-management-service
+      datasource:
+        url: jdbc:postgresql://loan-management-db:5432/loan_management_db
+        username: bookstore
+        password: bookstore123
+      jpa:
+        hibernate:
+          ddl-auto: validate
+    eureka:
+      client:
+        service-url:
+          defaultZone: http://eureka-server:8761/eureka/
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: loan-management-db
+  namespace: bookstore
+spec:
+  selector:
+    app: loan-management-db
+  ports:
+    - port: 5432
+      targetPort: 5432
+  type: ClusterIP
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loan-management-db
+  namespace: bookstore
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: loan-management-db
+  template:
+    metadata:
+      labels:
+        app: loan-management-db
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        env:
+        - name: POSTGRES_DB
+          value: loan_management_db
+        - name: POSTGRES_USER
+          value: bookstore
+        - name: POSTGRES_PASSWORD
+          value: bookstore123
+        ports:
+        - containerPort: 5432
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: postgres-storage
+        persistentVolumeClaim:
+          claimName: loan-management-db-pvc
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: loan-management-db-pvc
+  namespace: bookstore
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: loan-management-service
+  namespace: bookstore
+spec:
+  selector:
+    app: loan-management-service
+  ports:
+    - port: 8083
+      targetPort: 8083
+  type: ClusterIP
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loan-management-service
+  namespace: bookstore
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: loan-management-service
+  template:
+    metadata:
+      labels:
+        app: loan-management-service
+    spec:
+      containers:
+      - name: loan-management-service
+        image: bookstore/loan-management-service:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8083
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "prod"
+        - name: SPRING_DATASOURCE_URL
+          value: "jdbc:postgresql://loan-management-db:5432/loan_management_db"
+        - name: SPRING_DATASOURCE_USERNAME
+          value: "bookstore"
+        - name: SPRING_DATASOURCE_PASSWORD
+          value: "bookstore123"
+        - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+          value: "http://eureka-server:8761/eureka/"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8083
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8083
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"

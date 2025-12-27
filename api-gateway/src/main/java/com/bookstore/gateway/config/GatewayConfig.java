@@ -8,6 +8,7 @@ import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.web.reactive.function.client.WebClient;
 
 @Configuration
 public class GatewayConfig {
@@ -17,6 +18,11 @@ public class GatewayConfig {
 
     @Autowired
     private RateLimitingFilter rateLimitingFilter;
+
+    @Bean
+    public WebClient.Builder webClientBuilder() {
+        return WebClient.builder();
+    }
 
     @Bean
     public RouteLocator customRouteLocator(RouteLocatorBuilder builder) {

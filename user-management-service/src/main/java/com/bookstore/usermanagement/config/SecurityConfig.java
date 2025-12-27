@@ -1,6 +1,7 @@
 package com.bookstore.usermanagement.config;
 
 import com.bookstore.usermanagement.security.JwtAuthenticationFilter;
+import com.bookstore.usermanagement.security.ServiceAuthenticationFilter;
 import com.bookstore.usermanagement.service.UserDetailsServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -27,6 +28,9 @@ public class SecurityConfig {
     
     @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
+    
+    @Autowired
+    private ServiceAuthenticationFilter serviceAuthenticationFilter;
     
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -60,6 +64,7 @@ public class SecurityConfig {
             );
         
         http.authenticationProvider(authenticationProvider());
+        http.addFilterBefore(serviceAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         
         return http.build();

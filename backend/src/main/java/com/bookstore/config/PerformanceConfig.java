@@ -2,6 +2,7 @@ package com.bookstore.config;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,6 +26,18 @@ import java.util.concurrent.Executor;
 @Profile("!integration-test")
 public class PerformanceConfig {
 
+    @Value("${spring.datasource.url}")
+    private String jdbcUrl;
+    
+    @Value("${spring.datasource.username}")
+    private String username;
+    
+    @Value("${spring.datasource.password}")
+    private String password;
+    
+    @Value("${spring.datasource.driver-class-name}")
+    private String driverClassName;
+
     /**
      * Configure HikariCP connection pool for optimal database performance
      */
@@ -33,6 +46,12 @@ public class PerformanceConfig {
     @ConfigurationProperties("spring.datasource.hikari")
     public DataSource dataSource() {
         HikariConfig config = new HikariConfig();
+        
+        // Core datasource properties
+        config.setJdbcUrl(jdbcUrl);
+        config.setUsername(username);
+        config.setPassword(password);
+        config.setDriverClassName(driverClassName);
         
         // Connection pool settings
         config.setMaximumPoolSize(20);

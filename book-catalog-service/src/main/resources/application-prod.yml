@@ -1,0 +1,19 @@
+spring:
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://postgres:5432/book_catalog_db}
+    username: ${DATABASE_USERNAME:bookstore}
+    password: ${DATABASE_PASSWORD:bookstore123}
+  
+  jpa:
+    show-sql: false
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://eureka-server:8761/eureka/}
+
+logging:
+  level:
+    com.bookstore.catalog: INFO
+    org.springframework.cloud: INFO
+    org.hibernate.SQL: WARN

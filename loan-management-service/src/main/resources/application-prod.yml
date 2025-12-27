@@ -1,0 +1,22 @@
+spring:
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://postgres:5432/loan_management_db}
+    username: ${DATABASE_USERNAME:bookstore}
+    password: ${DATABASE_PASSWORD:bookstore123}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 10
+  
+  jpa:
+    show-sql: false
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://eureka-server:8761/eureka/}
+
+logging:
+  level:
+    com.bookstore.loanmanagement: INFO
+    org.springframework.cloud: INFO
+    feign: INFO

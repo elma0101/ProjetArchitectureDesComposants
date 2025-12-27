@@ -1,0 +1,99 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: book-catalog-service
+  namespace: bookstore
+  labels:
+    app: book-catalog-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8082
+      targetPort: 8082
+      protocol: TCP
+      name: http
+  selector:
+    app: book-catalog-service
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: book-catalog-service
+  namespace: bookstore
+  labels:
+    app: book-catalog-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: book-catalog-service
+  template:
+    metadata:
+      labels:
+        app: book-catalog-service
+    spec:
+      containers:
+        - name: book-catalog-service
+          image: book-catalog-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8082
+              name: http
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "prod"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: book-catalog-db-secret
+                  key: url
+            - name: DATABASE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: book-catalog-db-secret
+                  key: username
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: book-catalog-db-secret
+                  key: password
+            - name: EUREKA_SERVER_URL
+              value: "http://eureka-server:8761/eureka/"
+            - name: CONFIG_SERVER_URL
+              value: "http://config-server:8888"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8082
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8082
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: book-catalog-db-secret
+  namespace: bookstore
+type: Opaque
+stringData:
+  url: jdbc:postgresql://postgres:5432/book_catalog_db
+  username: bookstore
+  password: bookstore123

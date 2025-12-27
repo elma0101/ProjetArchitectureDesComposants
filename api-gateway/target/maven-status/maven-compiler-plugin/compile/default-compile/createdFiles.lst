@@ -1,10 +1,16 @@
+com/bookstore/gateway/client/UserServiceClient$TokenValidationResponse.class
 com/bookstore/gateway/util/JwtUtil.class
 com/bookstore/gateway/controller/HealthController.class
 com/bookstore/gateway/ApiGatewayApplication.class
 com/bookstore/gateway/controller/FallbackController.class
 com/bookstore/gateway/config/GatewayConfig.class
 com/bookstore/gateway/filter/RateLimitingFilter$Config.class
+com/bookstore/gateway/controller/SecurityMonitoringController.class
 com/bookstore/gateway/filter/JwtAuthenticationFilter$Config.class
+com/bookstore/gateway/security/SecurityMonitoringService.class
+com/bookstore/gateway/client/UserServiceClient.class
+com/bookstore/gateway/security/SecurityMonitoringService$FailedAuthAttempt.class
 com/bookstore/gateway/filter/JwtAuthenticationFilter.class
+com/bookstore/gateway/security/ServiceAuthenticationFilter.class
 com/bookstore/gateway/config/CircuitBreakerConfig.class
 com/bookstore/gateway/filter/RateLimitingFilter.class

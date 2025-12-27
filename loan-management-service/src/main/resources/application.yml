@@ -1,0 +1,166 @@
+spring:
+  application:
+    name: loan-management-service
+  
+  config:
+    import: optional:configserver:http://localhost:8888
+  
+  datasource:
+    url: jdbc:postgresql://localhost:5432/loan_management_db
+    username: bookstore
+    password: bookstore123
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+  
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+  
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+
+server:
+  port: 8083
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 30
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# Feign client configuration
+feign:
+  client:
+    config:
+      default:
+        connectTimeout: 5000
+        readTimeout: 5000
+        loggerLevel: basic
+  circuitbreaker:
+    enabled: true
+    alphanumeric-ids:
+      enabled: true
+
+# Resilience4j Configuration
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 10s
+        failureRateThreshold: 50
+        slowCallRateThreshold: 50
+        slowCallDurationThreshold: 2s
+        eventConsumerBufferSize: 10
+        recordExceptions:
+          - org.springframework.web.client.HttpServerErrorException
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+          - feign.FeignException
+    instances:
+      bookCatalogService:
+        baseConfig: default
+        waitDurationInOpenState: 15s
+        failureRateThreshold: 60
+      userManagementService:
+        baseConfig: default
+        waitDurationInOpenState: 10s
+        failureRateThreshold: 50
+  
+  retry:
+    configs:
+      default:
+        maxAttempts: 3
+        waitDuration: 1000
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
+        retryExceptions:
+          - org.springframework.web.client.HttpServerErrorException
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+          - feign.RetryableException
+        ignoreExceptions:
+          - org.springframework.web.client.HttpClientErrorException
+    instances:
+      bookCatalogService:
+        baseConfig: default
+        maxAttempts: 3
+        waitDuration: 500
+      userManagementService:
+        baseConfig: default
+        maxAttempts: 2
+        waitDuration: 1000
+  
+  ratelimiter:
+    configs:
+      default:
+        registerHealthIndicator: true
+        limitForPeriod: 50
+        limitRefreshPeriod: 1s
+        timeoutDuration: 5s
+    instances:
+      bookCatalogService:
+        baseConfig: default
+        limitForPeriod: 100
+      userManagementService:
+        baseConfig: default
+        limitForPeriod: 50
+  
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 3s
+        cancelRunningFuture: true
+    instances:
+      bookCatalogService:
+        baseConfig: default
+        timeoutDuration: 5s
+      userManagementService:
+        baseConfig: default
+        timeoutDuration: 3s
+
+logging:
+  level:
+    com.bookstore.loanmanagement: INFO
+    org.springframework.cloud: DEBUG
+    feign: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+security:
+  service:
+    api-key: ${SERVICE_API_KEY:bookstore-internal-service-key-change-in-production}
+    allowed-services: api-gateway,book-catalog-service,loan-management-service,user-management-service,recommendation-service,notification-service,audit-service
+

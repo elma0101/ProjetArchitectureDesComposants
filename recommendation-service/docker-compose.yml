@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  recommendation-service:
+    build: .
+    container_name: recommendation-service
+    ports:
+      - "8084:8084"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - MONGODB_HOST=mongodb
+      - MONGODB_PORT=27017
+      - MONGODB_DATABASE=recommendation_db
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=guest
+      - RABBITMQ_PASSWORD=guest
+      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
+      - CONFIG_SERVER_URL=http://config-server:8888
+    depends_on:
+      - mongodb
+      - rabbitmq
+    networks:
+      - bookstore-network
+
+  mongodb:
+    image: mongo:7.0
+    container_name: recommendation-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+    networks:
+      - bookstore-network
+
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    container_name: recommendation-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    networks:
+      - bookstore-network
+
+volumes:
+  mongodb-data:
+
+networks:
+  bookstore-network:
+    driver: bridge

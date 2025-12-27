@@ -1,0 +1,90 @@
+spring:
+  application:
+    name: loan-management-service
+  
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+  
+  flyway:
+    enabled: false
+  
+  cloud:
+    config:
+      enabled: false
+    discovery:
+      enabled: false
+  
+  security:
+    enabled: false
+
+eureka:
+  client:
+    enabled: false
+
+server:
+  port: 0
+
+# Resilience4j Configuration for Testing
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 5
+        minimumNumberOfCalls: 3
+        permittedNumberOfCallsInHalfOpenState: 2
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 1s
+        failureRateThreshold: 50
+        slowCallRateThreshold: 50
+        slowCallDurationThreshold: 2s
+    instances:
+      bookCatalogService:
+        baseConfig: default
+      userManagementService:
+        baseConfig: default
+  
+  retry:
+    configs:
+      default:
+        maxAttempts: 2
+        waitDuration: 100
+    instances:
+      bookCatalogService:
+        baseConfig: default
+      userManagementService:
+        baseConfig: default
+  
+  ratelimiter:
+    configs:
+      default:
+        registerHealthIndicator: true
+        limitForPeriod: 10
+        limitRefreshPeriod: 1s
+        timeoutDuration: 1s
+    instances:
+      bookCatalogService:
+        baseConfig: default
+      userManagementService:
+        baseConfig: default
+
+security:
+  service:
+    api-key: test-api-key
+    allowed-services: test-service
+
+logging:
+  level:
+    com.bookstore.loanmanagement: INFO

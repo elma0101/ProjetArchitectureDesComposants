@@ -1,8 +1,12 @@
 /home/ielma/Bureau/ProjetcsS9/Architecture des composants/api-gateway/src/main/java/com/bookstore/gateway/util/JwtUtil.java
+/home/ielma/Bureau/ProjetcsS9/Architecture des composants/api-gateway/src/main/java/com/bookstore/gateway/security/SecurityMonitoringService.java
 /home/ielma/Bureau/ProjetcsS9/Architecture des composants/api-gateway/src/main/java/com/bookstore/gateway/ApiGatewayApplication.java
 /home/ielma/Bureau/ProjetcsS9/Architecture des composants/api-gateway/src/main/java/com/bookstore/gateway/controller/FallbackController.java
 /home/ielma/Bureau/ProjetcsS9/Architecture des composants/api-gateway/src/main/java/com/bookstore/gateway/config/GatewayConfig.java
 /home/ielma/Bureau/ProjetcsS9/Architecture des composants/api-gateway/src/main/java/com/bookstore/gateway/filter/JwtAuthenticationFilter.java
+/home/ielma/Bureau/ProjetcsS9/Architecture des composants/api-gateway/src/main/java/com/bookstore/gateway/client/UserServiceClient.java
+/home/ielma/Bureau/ProjetcsS9/Architecture des composants/api-gateway/src/main/java/com/bookstore/gateway/security/ServiceAuthenticationFilter.java
 /home/ielma/Bureau/ProjetcsS9/Architecture des composants/api-gateway/src/main/java/com/bookstore/gateway/config/CircuitBreakerConfig.java
 /home/ielma/Bureau/ProjetcsS9/Architecture des composants/api-gateway/src/main/java/com/bookstore/gateway/filter/RateLimitingFilter.java
 /home/ielma/Bureau/ProjetcsS9/Architecture des composants/api-gateway/src/main/java/com/bookstore/gateway/controller/HealthController.java
+/home/ielma/Bureau/ProjetcsS9/Architecture des composants/api-gateway/src/main/java/com/bookstore/gateway/controller/SecurityMonitoringController.java

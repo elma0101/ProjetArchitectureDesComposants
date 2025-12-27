@@ -6,6 +6,7 @@ import feign.Retryer;
 import feign.codec.ErrorDecoder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 
 import java.util.concurrent.TimeUnit;
 
@@ -13,6 +14,7 @@ import java.util.concurrent.TimeUnit;
  * Configuration for Feign clients with timeouts, retries, and error handling
  */
 @Configuration
+@Profile("!h2")
 public class FeignClientConfig {
     
     /**

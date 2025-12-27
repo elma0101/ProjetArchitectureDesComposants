@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:14-alpine
+    container_name: book-catalog-postgres
+    environment:
+      POSTGRES_DB: book_catalog_db
+      POSTGRES_USER: bookstore
+      POSTGRES_PASSWORD: bookstore123
+    ports:
+      - "5433:5432"
+    volumes:
+      - book-catalog-data:/var/lib/postgresql/data
+    networks:
+      - bookstore-network
+
+  book-catalog-service:
+    build: .
+    container_name: book-catalog-service
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      DATABASE_URL: jdbc:postgresql://postgres:5432/book_catalog_db
+      DATABASE_USERNAME: bookstore
+      DATABASE_PASSWORD: bookstore123
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      CONFIG_SERVER_URL: http://config-server:8888
+    ports:
+      - "8082:8082"
+    depends_on:
+      - postgres
+    networks:
+      - bookstore-network
+
+volumes:
+  book-catalog-data:
+
+networks:
+  bookstore-network:
+    external: true

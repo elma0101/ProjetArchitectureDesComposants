@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: recommendation-service
+  
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: test_recommendation_db
+      username:
+      password:
+  
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+  
+  cloud:
+    config:
+      enabled: false
+
+server:
+  port: 0
+
+eureka:
+  client:
+    enabled: false
+
+rabbitmq:
+  exchange:
+    loan: test.loan.exchange
+  queue:
+    loan-events: test.recommendation.loan.events
+  routing-key:
+    loan: loan.#
+
+logging:
+  level:
+    com.bookstore.recommendation: DEBUG

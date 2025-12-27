@@ -1,5 +1,6 @@
 package com.bookstore.gateway.filter;
 
+import com.bookstore.gateway.client.UserServiceClient;
 import com.bookstore.gateway.util.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,6 +14,7 @@ import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -29,6 +31,9 @@ class JwtAuthenticationFilterTest {
     private JwtUtil jwtUtil;
 
     @Mock
+    private UserServiceClient userServiceClient;
+
+    @Mock
     private GatewayFilterChain chain;
 
     private JwtAuthenticationFilter filter;
@@ -36,7 +41,9 @@ class JwtAuthenticationFilterTest {
     @BeforeEach
     void setUp() {
         filter = new JwtAuthenticationFilter();
-        filter.jwtUtil = jwtUtil;
+        ReflectionTestUtils.setField(filter, "jwtUtil", jwtUtil);
+        ReflectionTestUtils.setField(filter, "userServiceClient", userServiceClient);
+        ReflectionTestUtils.setField(filter, "useRemoteValidation", false);
     }
 
     @Test

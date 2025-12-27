@@ -1,6 +1,9 @@
 com/bookstore/gateway/integration/GatewayIntegrationTest.class
 com/bookstore/gateway/util/JwtUtilTest.class
+com/bookstore/gateway/client/UserServiceClientTest.class
 com/bookstore/gateway/ApiGatewayApplicationTests.class
 com/bookstore/gateway/filter/JwtAuthenticationFilterTest.class
 com/bookstore/gateway/config/TestConfig.class
+com/bookstore/gateway/integration/UserServiceAuthenticationFlowTest.class
 com/bookstore/gateway/controller/HealthControllerTest.class
+com/bookstore/gateway/security/SecurityMonitoringServiceTest.class

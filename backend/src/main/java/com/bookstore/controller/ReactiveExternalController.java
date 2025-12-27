@@ -6,6 +6,7 @@ import com.bookstore.entity.Book;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.context.annotation.Profile;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -21,6 +22,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/reactive")
 @Tag(name = "Reactive External Services", description = "Reactive operations for external service integration")
+@Profile("!h2")
 public class ReactiveExternalController {
 
     private final ReactiveExternalService reactiveExternalService;

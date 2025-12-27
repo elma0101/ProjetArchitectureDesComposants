@@ -22,8 +22,24 @@ spring:
   
   sql:
     init:
-      mode: always
-      data-locations: classpath:data.sql
+      mode: never
+  
+  flyway:
+    enabled: false
+  
+  main:
+    allow-circular-references: true
+  
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            connectTimeout: 5000
+            readTimeout: 10000
+      enabled: false
+    discovery:
+      enabled: false
 
 logging:
   level:

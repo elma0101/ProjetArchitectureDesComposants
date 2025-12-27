@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Recommendation, RecommendationType } from '../types';
 import { recommendationsAPI } from '../services/api';
-import { AuthContext } from '../App';
+import { useAuth } from '../context/AuthContext';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import BookCard from '../components/Books/BookCard';
 
 const RecommendationsPage: React.FC = () => {
-  const { user } = useContext(AuthContext);
+  const { user } = useAuth();
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

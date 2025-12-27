@@ -1,0 +1,134 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: recommendation-service
+  namespace: bookstore
+spec:
+  selector:
+    app: recommendation-service
+  ports:
+    - protocol: TCP
+      port: 8084
+      targetPort: 8084
+  type: ClusterIP
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: recommendation-service
+  namespace: bookstore
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: recommendation-service
+  template:
+    metadata:
+      labels:
+        app: recommendation-service
+    spec:
+      containers:
+      - name: recommendation-service
+        image: bookstore/recommendation-service:latest
+        ports:
+        - containerPort: 8084
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "prod"
+        - name: MONGODB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: recommendation-config
+              key: mongodb.host
+        - name: MONGODB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: recommendation-config
+              key: mongodb.port
+        - name: MONGODB_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: recommendation-config
+              key: mongodb.database
+        - name: MONGODB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: recommendation-secrets
+              key: mongodb.username
+        - name: MONGODB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: recommendation-secrets
+              key: mongodb.password
+        - name: RABBITMQ_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: infrastructure-config
+              key: rabbitmq.host
+        - name: RABBITMQ_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: infrastructure-config
+              key: rabbitmq.port
+        - name: RABBITMQ_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: infrastructure-secrets
+              key: rabbitmq.username
+        - name: RABBITMQ_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: infrastructure-secrets
+              key: rabbitmq.password
+        - name: EUREKA_SERVER_URL
+          valueFrom:
+            configMapKeyRef:
+              name: infrastructure-config
+              key: eureka.url
+        - name: CONFIG_SERVER_URL
+          valueFrom:
+            configMapKeyRef:
+              name: infrastructure-config
+              key: config-server.url
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8084
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8084
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: recommendation-config
+  namespace: bookstore
+data:
+  mongodb.host: "mongodb-service"
+  mongodb.port: "27017"
+  mongodb.database: "recommendation_db"
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: recommendation-secrets
+  namespace: bookstore
+type: Opaque
+stringData:
+  mongodb.username: "recommendation_user"
+  mongodb.password: "recommendation_password"

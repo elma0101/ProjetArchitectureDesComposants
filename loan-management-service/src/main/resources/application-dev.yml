@@ -1,0 +1,14 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/loan_management_db
+    username: bookstore
+    password: bookstore123
+  
+  jpa:
+    show-sql: true
+
+logging:
+  level:
+    com.bookstore.loanmanagement: DEBUG
+    org.springframework.cloud: DEBUG
+    feign: DEBUG

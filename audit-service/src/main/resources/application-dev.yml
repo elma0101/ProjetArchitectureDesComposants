@@ -1,0 +1,23 @@
+spring:
+  elasticsearch:
+    uris: http://localhost:9200
+  
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+
+server:
+  port: 8085
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+logging:
+  level:
+    com.bookstore.audit: DEBUG
+    org.springframework.data.elasticsearch: DEBUG
+    org.springframework.amqp: DEBUG

@@ -70,6 +70,19 @@ jwt:
   secret: ${JWT_SECRET:mySecretKeyForBookstoreApplicationThatShouldBeAtLeast256BitsLong}
   expiration: 86400
 
+gateway:
+  auth:
+    use-remote-validation: false  # Set to true to validate tokens with User Management Service
+
+services:
+  user-management:
+    url: ${USER_SERVICE_URL:lb://user-management-service}
+
+security:
+  service:
+    api-key: ${SERVICE_API_KEY:bookstore-internal-service-key-change-in-production}
+    allowed-services: api-gateway,book-catalog-service,loan-management-service,user-management-service,recommendation-service,notification-service,audit-service
+
 logging:
   level:
     org.springframework.cloud.gateway: DEBUG
@@ -89,7 +102,15 @@ resilience4j:
         wait-duration-in-open-state: 30s
         minimum-number-of-calls: 5
         automatic-transition-from-open-to-half-open-enabled: true
+      user-service:
+        sliding-window-size: 20
+        failure-rate-threshold: 60
+        wait-duration-in-open-state: 20s
+        minimum-number-of-calls: 5
+        automatic-transition-from-open-to-half-open-enabled: true
   timelimiter:
     instances:
       default:
         timeout-duration: 10s
+      user-service:
+        timeout-duration: 5s

@@ -69,3 +69,9 @@ logging:
     org.springframework.security: DEBUG
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+security:
+  service:
+    api-key: ${SERVICE_API_KEY:bookstore-internal-service-key-change-in-production}
+    allowed-services: api-gateway,book-catalog-service,loan-management-service,user-management-service,recommendation-service,notification-service,audit-service
+

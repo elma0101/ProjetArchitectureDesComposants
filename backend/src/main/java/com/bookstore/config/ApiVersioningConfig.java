@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.web.servlet.WebMvcRegistrations;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
@@ -13,6 +14,7 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
  * Configuration for API versioning and feature toggles
  */
 @Configuration
+@Profile("!h2")
 public class ApiVersioningConfig implements WebMvcConfigurer, WebMvcRegistrations {
 
     @Autowired

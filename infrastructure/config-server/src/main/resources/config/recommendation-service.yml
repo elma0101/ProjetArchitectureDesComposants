@@ -1,26 +1,76 @@
-server:
-  port: 8084
-
 spring:
-  application:
-    name: recommendation-service
   data:
     mongodb:
-      uri: mongodb://${MONGO_USERNAME:bookstore_user}:${MONGO_PASSWORD:bookstore_pass}@${MONGO_HOST:mongodb}:27017/bookstore_recommendations
+      host: ${MONGODB_HOST:mongodb}
+      port: ${MONGODB_PORT:27017}
+      database: ${MONGODB_DATABASE:recommendation_db}
+      username: ${MONGODB_USERNAME:}
+      password: ${MONGODB_PASSWORD:}
+  
   rabbitmq:
     host: ${RABBITMQ_HOST:rabbitmq}
-    port: 5672
+    port: ${RABBITMQ_PORT:5672}
     username: ${RABBITMQ_USERNAME:guest}
     password: ${RABBITMQ_PASSWORD:guest}
 
-feign:
+server:
+  port: 8084
+
+eureka:
   client:
-    config:
-      user-management-service:
-        url: http://user-management-service:8081
-      book-catalog-service:
-        url: http://book-catalog-service:8082
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://eureka-server:8761/eureka/}
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 30
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+rabbitmq:
+  exchange:
+    loan: loan.exchange
+  queue:
+    loan-events: recommendation.loan.events
+  routing-key:
+    loan: loan.#
 
 logging:
-  file:
-    name: logs/recommendation-service.log
+  level:
+    com.bookstore.recommendation: INFO
+    org.springframework.data.mongodb: INFO
+    org.springframework.amqp: INFO
+
+feign:
+  circuitbreaker:
+    enabled: true
+  client:
+    config:
+      default:
+        connectTimeout: 5000
+        readTimeout: 5000
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      bookCatalogService:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 10s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10

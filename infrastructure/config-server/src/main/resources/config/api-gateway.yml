@@ -28,7 +28,7 @@ spring:
         - id: recommendation-service
           uri: lb://recommendation-service
           predicates:
-            - Path=/api/recommendations/**
+            - Path=/api/recommendations/**, /api/preferences/**, /api/analytics/**
           filters:
             - StripPrefix=1
         - id: audit-service

@@ -5,28 +5,82 @@ spring:
   application:
     name: loan-management-service
   datasource:
-    url: jdbc:postgresql://postgres:5432/bookstore_loans
-    username: ${DB_USERNAME:bookstore_user}
-    password: ${DB_PASSWORD:bookstore_pass}
+    url: jdbc:postgresql://postgres:5432/loan_management_db
+    username: ${DB_USERNAME:bookstore}
+    password: ${DB_PASSWORD:bookstore123}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 10
   jpa:
     hibernate:
       ddl-auto: validate
+    show-sql: false
   flyway:
-    locations: classpath:db/migration/loans
-  rabbitmq:
-    host: ${RABBITMQ_HOST:rabbitmq}
-    port: 5672
-    username: ${RABBITMQ_USERNAME:guest}
-    password: ${RABBITMQ_PASSWORD:guest}
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
 
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://eureka-server:8761/eureka/}
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 30
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# Feign client configuration
 feign:
   client:
     config:
-      user-management-service:
-        url: http://user-management-service:8081
-      book-catalog-service:
-        url: http://book-catalog-service:8082
+      default:
+        connectTimeout: 5000
+        readTimeout: 5000
+        loggerLevel: basic
+  circuitbreaker:
+    enabled: true
+
+# Resilience4j Circuit Breaker
+resilience4j:
+  circuitbreaker:
+    instances:
+      bookCatalogService:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 10s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+      userManagementService:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 10s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
 
 logging:
+  level:
+    com.bookstore.loanmanagement: INFO
+    org.springframework.cloud: INFO
+    feign: INFO
   file:
     name: logs/loan-management-service.log

@@ -3,4 +3,7 @@
 /home/ielma/Bureau/ProjetcsS9/Architecture des composants/api-gateway/src/test/java/com/bookstore/gateway/util/JwtUtilTest.java
 /home/ielma/Bureau/ProjetcsS9/Architecture des composants/api-gateway/src/test/java/com/bookstore/gateway/integration/GatewayIntegrationTest.java
 /home/ielma/Bureau/ProjetcsS9/Architecture des composants/api-gateway/src/test/java/com/bookstore/gateway/controller/HealthControllerTest.java
+/home/ielma/Bureau/ProjetcsS9/Architecture des composants/api-gateway/src/test/java/com/bookstore/gateway/security/SecurityMonitoringServiceTest.java
+/home/ielma/Bureau/ProjetcsS9/Architecture des composants/api-gateway/src/test/java/com/bookstore/gateway/integration/UserServiceAuthenticationFlowTest.java
 /home/ielma/Bureau/ProjetcsS9/Architecture des composants/api-gateway/src/test/java/com/bookstore/gateway/config/TestConfig.java
+/home/ielma/Bureau/ProjetcsS9/Architecture des composants/api-gateway/src/test/java/com/bookstore/gateway/client/UserServiceClientTest.java
